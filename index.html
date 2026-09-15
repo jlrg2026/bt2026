@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobTracker 2026 — Búsqueda de Empleo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  
+  :root {
+    --primary: #0ea5e9;
+    --primary-dark: #0284c7;
+    --accent: #06b6d4;
+    --accent-2: #38bdf8;
+    --bg: #050d1a;
+    --bg-2: #0a1628;
+    --card: #0f2038;
+    --card-2: #162a47;
+    --text: #e0f2fe;
+    --text-light: #7dd3fc;
+    --border: #1e3a5f;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --sidebar-bg: linear-gradient(180deg, #041428 0%, #062a4d 50%, #063a6b 100%);
+  }
+
+  body.light-mode {
+    --bg: #f0f9ff;
+    --bg-2: #e0f2fe;
+    --card: #ffffff;
+    --card-2: #f0f9ff;
+    --text: #0c4a6e;
+    --text-light: #0369a1;
+    --border: #bae6fd;
+    --sidebar-bg: linear-gradient(180deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+    transition: background 0.4s ease, color 0.4s ease;
+    background-image: 
+      radial-gradient(circle at 15% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.04) 0%, transparent 60%);
+    background-attachment: fixed;
+    font-size: 15px;
+  }
+
+  /* Iconos SVG generales */
+  .icon {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    stroke: currentColor;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .icon-sm { width: 15px; height: 15px; }
+  .icon-lg { width: 22px; height: 22px; }
+
+  /* ==================== SIDEBAR ==================== */
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--sidebar-bg);
+    color: #bae6fd;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 200;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 30px rgba(14, 165, 233, 0.2);
+    border-right: 1px solid rgba(14, 165, 233, 0.25);
+  }
+
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #0ea5e9, #06b6d4);
+    border-radius: 3px;
+  }
+
+  .sidebar-header {
+    padding: 20px 18px;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: rgba(4, 20, 40, 0.9);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+  .sidebar-header h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #e0f2fe;
+    letter-spacing: -0.3px;
+  }
+  .sidebar-header h2 .icon {
+    color: #38bdf8;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+  }
+  .close-sidebar {
+    display: none;
+    background: rgba(14, 165, 233, 0.2);
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .close-sidebar:hover { background: rgba(6, 182, 212, 0.4); }
+
+  .sidebar-section {
+    padding: 16px 12px 8px;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.1);
+  }
+  .sidebar-section.destacado {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(6, 182, 212, 0.1));
+    border-left: 3px solid #06b6d4;
+  }
+  .sidebar-section h3 {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #38bdf8;
+    margin-bottom: 12px;
+    padding-left: 8px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-section h3 .icon { width: 14px; height: 14px; }
+
+  .sidebar-link {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 4px 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #bae6fd;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.25s;
+    line-height: 1.3;
+    margin-bottom: 2px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid transparent;
+  }
+  .sidebar-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: linear-gradient(180deg, #06b6d4, #0ea5e9, #38bdf8);
+    transform: scaleY(0);
+    transition: transform 0.25s;
+  }
+  .sidebar-link:hover {
+    background: rgba(14, 165, 233, 0.15);
+    transform: translateX(4px);
+    border-color: rgba(14, 165, 233, 0.35);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.25);
+  }
+  .sidebar-link:hover::before { transform: scaleY(1); }
+
+  .sidebar-link .link-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    transition: all 0.25s;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+  .sidebar-link:hover .link-icon {
+    background: rgba(14, 165, 233, 0.3);
+    color: #22d3ee;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+  }
+  .sidebar-link .link-icon .icon { width: 16px; height: 16px; }
+
+  .sidebar-link .link-text {
+    font-weight: 600;
+    color: #e0f2fe;
+  }
+  .sidebar-link small {
+    font-size: 0.68rem;
+    color: #7dd3fc;
+    opacity: 0.75;
+    font-weight: 400;
+    grid-column: 2;
+  }
+  .sidebar-link.gov {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .sidebar-link.gov .link-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+  }
+  .sidebar-link.gov:hover .link-icon {
+    background: rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+  }
+
+  .sidebar-footer {
+    padding: 16px;
+    margin-top: auto;
+    font-size: 0.72rem;
+    color: #7dd3fc;
+    background: rgba(0,0,0,0.4);
+    line-height: 1.6;
+    border-top: 1px solid rgba(14, 165, 233, 0.25);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .sidebar-footer .icon {
+    color: #22d3ee;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .sidebar-footer strong { color: #22d3ee; }
+
+  /* ==================== CONTENIDO PRINCIPAL ==================== */
+  .contenido-principal {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #041428 0%, #0c4a6e 50%, #0e7490 100%);
+    color: white;
+    padding: 18px 30px;
+    box-shadow: 0 4px 30px rgba(14, 165, 233, 0.4);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.35);
+    backdrop-filter: blur(10px);
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0ea5e9, #06b6d4, #22d3ee, transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  .header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  header h1 {
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  header h1 .logo-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.5);
+  }
+  header h1 .logo-icon .icon {
+    width: 22px;
+    height: 22px;
+    color: white;
+  }
+  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .btn {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.25s;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: inherit;
+  }
+  .btn .icon { width: 16px; height: 16px; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    color: white;
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.5);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(6, 182, 212, 0.6);
+  }
+  .btn-ghost {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(10px);
+  }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+  }
+  .btn-icon-only {
+    padding: 9px;
+    width: 38px;
+    height: 38px;
+    justify-content: center;
+  }
+  .btn-theme {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+  }
+  .btn-theme:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6);
+  }
+
+  /* CONTAINER */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 26px 30px;
+    width: 100%;
+  }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border-left: 4px solid var(--primary);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: -20px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    opacity: 0.15;
+    background: currentColor;
+    filter: blur(20px);
+  }
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(14, 165, 233, 0.35);
+    border-color: currentColor;
+  }
+  .stat-card.total { border-left-color: #0ea5e9; color: #38bdf8; }
+  .stat-card.postulado { border-left-color: #3b82f6; color: #60a5fa; }
+  .stat-card.entrevista { border-left-color: #f59e0b; color: #fbbf24; }
+  .stat-card.oferta { border-left-color: #10b981; color: #34d399; }
+  .stat-card.rechazado { border-left-color: #ef4444; color: #f87171; }
+  
+  .stat-card .stat-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .stat-card .label {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .stat-card .stat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(14, 165, 233, 0.12);
+    color: currentColor;
+  }
+  .stat-card .stat-icon .icon {
+    width: 17px;
+    height: 17px;
+  }
+  .stat-card .value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    text-shadow: 0 0 20px currentColor;
+    position: relative;
+    z-index: 1;
+    letter-spacing: -1px;
+  }
+
+  /* FILTROS */
+  .filtros {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 1px solid var(--border);
+  }
+  .search-wrapper {
+    flex: 1;
+    min-width: 240px;
+    position: relative;
+  }
+  .search-wrapper .icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    pointer-events: none;
+  }
+  .search-wrapper input {
+    width: 100%;
+    padding: 11px 15px 11px 42px;
+  }
+  .filtros input, .filtros select {
+    padding: 11px 15px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.88rem;
+    outline: none;
+    transition: all 0.25s;
+    font-family: inherit;
+    background: var(--bg-2);
+    color: var(--text);
+  }
+  .filtros input::placeholder { color: var(--text-light); }
+  .filtros input:focus, .filtros select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2), 0 0 20px rgba(14, 165, 233, 0.4);
+  }
+
+  /* TABLA */
+  .tabla-container {
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead {
+    background: linear-gradient(135deg, #041428, #0c4a6e);
+  }
+  body.light-mode thead {
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+  }
+  th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+    font-weight: 700;
+  }
+  body.light-mode th { color: #0369a1; }
+  td {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  tbody tr { transition: all 0.2s; }
+  tbody tr:hover {
+    background: var(--card-2);
+    box-shadow: inset 3px 0 0 #0ea5e9;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .badge .icon { width: 11px; height: 11px; }
+  .badge.postulado {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+  }
+  .badge.entrevista {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+  }
+  .badge.prueba {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.25);
+  }
+  .badge.oferta {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+  }
+  .badge.rechazado {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+  }
+
+  .actions { display: flex; gap: 4px; }
+  .icon-btn {
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 7px;
+    border-radius: 8px;
+    transition: all 0.25s;
+    text-decoration: none;
+    color: var(--text-light);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+  }
+  .icon-btn:hover {
+    background: rgba(14, 165, 233, 0.25);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.5);
+    border-color: rgba(14, 165, 233, 0.6);
+    color: #38bdf8;
+  }
+  .icon-btn .icon { width: 15px; height: 15px; }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+  }
+  .empty .empty-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: rgba(14, 165, 233, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+  }
+  .empty .empty-icon .icon { width: 28px; height: 28px; }
+  .empty h3 { font-size: 1.15rem; margin-bottom: 6px; color: var(--text); font-weight: 700; }
+  .empty p { font-size: 0.88rem; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 10, 25, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    animation: fadeIn 0.25s;
+  }
+  .modal-overlay.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--card);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px;
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 25px 70px rgba(14, 165, 233, 0.4), 0 0 0 1px rgba(14, 165, 233, 0.35);
+    border: 1px solid var(--border);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(40px) scale(0.95); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .modal h2 {
+    margin-bottom: 22px;
+    font-size: 1.2rem;
+    color: var(--text);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.3px;
+  }
+  .modal h2 .modal-title-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    color: white;
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+  }
+  .modal h2 .modal-title-icon .icon { width: 18px; height: 18px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 11px 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.88rem;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.25s;
+    background: var(--bg-2);
+    color: var(--text);
+  }
+  .form-group input::placeholder, .form-group textarea::placeholder { color: var(--text-light); }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2), 0 0 20px rgba(14, 165, 233, 0.4);
+  }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .btn-cancelar {
+    background: var(--bg-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-cancelar:hover {
+    background: var(--card-2);
+    border-color: var(--primary);
+  }
+  .btn-guardar {
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    color: white;
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.5);
+  }
+  .btn-guardar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(6, 182, 212, 0.6);
+  }
+
+  /* TOGGLE SIDEBAR (MÓVIL) */
+  .toggle-sidebar {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 300;
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.6);
+    transition: all 0.25s;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+  }
+  .toggle-sidebar:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 30px rgba(6, 182, 212, 0.7);
+  }
+  .toggle-sidebar .icon { width: 22px; height: 22px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: var(--card);
+    color: var(--text);
+    padding: 14px 22px;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    z-index: 2000;
+    transform: translateY(120px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 600;
+    font-size: 0.88rem;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border-color: #34d399;
+    box-shadow: 0 12px 40px rgba(16, 185, 129, 0.5);
+  }
+  .toast.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border-color: #f87171;
+    box-shadow: 0 12px 40px rgba(239, 68, 68, 0.5);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      transform: translateX(-100%);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .toggle-sidebar { display: flex; }
+    .close-sidebar { display: flex; }
+    body { display: block; }
+    .contenido-principal { width: 100%; }
+    header .header-content { padding-left: 55px; }
+  }
+  @media (max-width: 768px) {
+    .container { padding: 18px 15px; }
+    header { padding: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .tabla-container { overflow-x: auto; }
+    table { min-width: 750px; }
+    .stat-card .value { font-size: 1.6rem; }
+    header h1 { font-size: 1.05rem; }
+    header h1 .logo-icon { width: 34px; height: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BOTÓN PARA ABRIR SIDEBAR EN MÓVIL -->
+<button class="toggle-sidebar" onclick="toggleSidebar()" aria-label="Abrir menú">
+  <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
+<!-- ==================== SIDEBAR IZQUIERDO ==================== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2>
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Bolsas de Empleo
+    </h2>
+    <button class="close-sidebar" onclick="toggleSidebar()" aria-label="Cerrar">
+      <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Plataformas Globales
+    </h3>
+    <a href="https://www.indeed.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="link-text">Indeed Global</span>
+      <small>El buscador más grande del mundo</small>
+    </a>
+    <a href="https://www.linkedin.com/jobs" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></span>
+      <span class="link-text">LinkedIn Jobs</span>
+      <small>Puestos profesionales y networking</small>
+    </a>
+    <a href="https://www.glassdoor.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+      <span class="link-text">Glassdoor</span>
+      <small>Reseñas, salarios y vacantes</small>
+    </a>
+    <a href="https://www.ziprecruiter.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span>
+      <span class="link-text">ZipRecruiter</span>
+      <small>Recomendaciones con IA</small>
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>
+      <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Remoto y Tech
+    </h3>
+    <a href="https://weworkremotely.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+      <span class="link-text">We Work Remotely</span>
+      <small>La comunidad remota más grande</small>
+    </a>
+    <a href="https://remoteok.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+      <span class="link-text">Remote OK</span>
+      <small>Empleos tech, diseño y datos</small>
+    </a>
+    <a href="https://wellfound.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></span>
+      <span class="link-text">Wellfound</span>
+      <small>Startups con salario y equity</small>
+    </a>
+    <a href="https://www.flexjobs.com" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+      <span class="link-text">FlexJobs</span>
+      <small>Vacantes verificadas (de pago)</small>
+    </a>
+  </div>
+
+  <div class="sidebar-section destacado">
+    <h3>
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
+      México — Top 2026
+    </h3>
+    <a href="https://www.indeed.com.mx" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="link-text">Indeed México</span>
+      <small>El sitio #1 más visitado en México</small>
+    </a>
+    <a href="https://www.computrabajo.com.mx" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
+      <span class="link-text">Computrabajo</span>
+      <small>El #2 más usado en todo México</small>
+    </a>
+    <a href="https://www.occ.com.mx" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+      <span class="link-text">OCC Mundial</span>
+      <small>El #3 — usado por TV Azteca y más</small>
+    </a>
+    <a href="https://www.glassdoor.com.mx" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+      <span class="link-text">Glassdoor México</span>
+      <small>Salarios reales y reseñas</small>
+    </a>
+    <a href="https://www.empleo.gob.mx" target="_blank" rel="noopener" class="sidebar-link gov">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg></span>
+      <span class="link-text">Empleo.gob.mx</span>
+      <small>Portal oficial del Gobierno</small>
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>
+      <svg class="icon" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+      CDMX — Recursos Oficiales
+    </h3>
+    <a href="https://www.trabajo.cdmx.gob.mx" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+      <span class="link-text">Trabajo CDMX</span>
+      <small>Periódico oficial de ofertas</small>
+    </a>
+    <a href="https://www.gob.mx/profedet" target="_blank" rel="noopener" class="sidebar-link">
+      <span class="link-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <span class="link-text">PROFEDET</span>
+      <small>Defensa del trabajador (CDMX)</small>
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg>
+    <span><strong>Consejo 2026:</strong> Enfócate en 3 o 4 plataformas especializadas en lugar de aplicar en todas. La calidad vence a la cantidad.</span>
+  </div>
+</aside>
+
+<!-- ==================== CONTENIDO PRINCIPAL ==================== -->
+<div class="contenido-principal">
+
+  <header>
+    <div class="header-content">
+      <h1>
+        <span class="logo-icon">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        </span>
+        JobTracker 2026
+      </h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="abrirModal()">
+          <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva Vacante
+        </button>
+        <button class="btn btn-ghost" onclick="exportarDatos()">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar
+        </button>
+        <button class="btn btn-ghost" onclick="document.getElementById('archivoImport').click()">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar
+        </button>
+        <button class="btn btn-theme btn-icon-only" id="btnTema" onclick="cambiarTema()" title="Cambiar tema">
+          <svg class="icon" viewBox="0 0 24 24" id="iconTema"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <input type="file" id="archivoImport" accept=".json" style="display:none" onchange="importarDatos(event)">
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ESTADÍSTICAS -->
+    <div class="stats-grid">
+      <div class="stat-card total">
+        <div class="stat-head">
+          <div class="label">Total</div>
+          <div class="stat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+        </div>
+        <div class="value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card postulado">
+        <div class="stat-head">
+          <div class="label">Postulado</div>
+          <div class="stat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+        </div>
+        <div class="value" id="statPostulado">0</div>
+      </div>
+      <div class="stat-card entrevista">
+        <div class="stat-head">
+          <div class="label">En Entrevista</div>
+          <div class="stat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+        </div>
+        <div class="value" id="statEntrevista">0</div>
+      </div>
+      <div class="stat-card oferta">
+        <div class="stat-head">
+          <div class="label">Ofertas</div>
+          <div class="stat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          </div>
+        </div>
+        <div class="value" id="statOferta">0</div>
+      </div>
+      <div class="stat-card rechazado">
+        <div class="stat-head">
+          <div class="label">Rechazado</div>
+          <div class="stat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="value" id="statRechazado">0</div>
+      </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filtros">
+      <div class="search-wrapper">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="busqueda" placeholder="Buscar por empresa, puesto o notas..." oninput="renderizar()">
+      </div>
+      <select id="filtroEstado" onchange="renderizar()">
+        <option value="">Todos los estados</option>
+        <option value="Postulado">Postulado</option>
+        <option value="Entrevista">Entrevista</option>
+        <option value="Prueba Técnica">Prueba Técnica</option>
+        <option value="Oferta">Oferta</option>
+        <option value="Rechazado">Rechazado</option>
+      </select>
+      <select id="ordenar" onchange="renderizar()">
+        <option value="fecha-desc">Más recientes</option>
+        <option value="fecha-asc">Más antiguos</option>
+        <option value="empresa">Empresa (A-Z)</option>
+        <option value="salario-desc">Mayor salario</option>
+      </select>
+    </div>
+
+    <!-- TABLA -->
+    <div class="tabla-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Puesto</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Salario</th>
+            <th>Notas</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpoTabla"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL ==================== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="tituloModal">
+      <span class="modal-title-icon">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </span>
+      <span id="tituloTexto">Nueva Vacante</span>
+    </h2>
+    <form id="formularioVacante" onsubmit="guardarVacante(event)">
+      <input type="hidden" id="vacanteId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Empresa *</label>
+          <input type="text" id="empresa" required placeholder="Ej. Google">
+        </div>
+        <div class="form-group">
+          <label>Puesto *</label>
+          <input type="text" id="puesto" required placeholder="Ej. Frontend Developer">
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="estado">
+            <option>Postulado</option>
+            <option>Entrevista</option>
+            <option>Prueba Técnica</option>
+            <option>Oferta</option>
+            <option>Rechazado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha de postulación</label>
+          <input type="date" id="fecha">
+        </div>
+        <div class="form-group">
+          <label>Salario mensual</label>
+          <input type="number" id="salario" placeholder="Ej. 45000" min="0">
+        </div>
+        <div class="form-group">
+          <label>Modalidad</label>
+          <select id="modalidad">
+            <option>Remoto</option>
+            <option>Híbrido</option>
+            <option>Presencial</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>URL de la vacante</label>
+          <input type="url" id="url" placeholder="https://...">
+        </div>
+        <div class="form-group full">
+          <label>Notas / Contacto</label>
+          <textarea id="notas" placeholder="Reclutador, correo, observaciones..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancelar" onclick="cerrarModal()">
+          <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-guardar">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar Vacante
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CLAVE_STORAGE = 'buscador_empleo_2026';
+  const CLAVE_TEMA = 'buscador_empleo_tema';
+  let vacantes = [];
+
+  /* Iconos SVG reutilizables */
+  const ICONOS = {
+    link: '<svg class="icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    edit: '<svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    trash: '<svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    inbox: '<svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+    badgeCheck: '<svg class="icon" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 5-4 9-9 9s-9-4-9-9 4-9 9-9c1 0 2 .15 3 .44"/></svg>',
+    badgeMic: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>',
+    badgeFlask: '<svg class="icon" viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M10 3v6L4.5 18a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 9V3"/></svg>',
+    badgeGift: '<svg class="icon" viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/></svg>',
+    badgeX: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    sun: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+    moon: '<svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    check: '<svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+    alert: '<svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+  };
+
+  /* ---------- TEMA CLARO/OSCURO ---------- */
+  function aplicarTema(tema) {
+    const body = document.body;
+    const btn = document.getElementById('btnTema');
+    if (tema === 'light') {
+      body.classList.add('light-mode');
+      btn.innerHTML = ICONOS.sun;
+      btn.title = 'Cambiar a modo oscuro';
+    } else {
+      body.classList.remove('light-mode');
+      btn.innerHTML = ICONOS.moon;
+      btn.title = 'Cambiar a modo claro';
+    }
+    localStorage.setItem(CLAVE_TEMA, tema);
+  }
+
+  function cambiarTema() {
+    const actual = localStorage.getItem(CLAVE_TEMA) || 'dark';
+    const nuevo = actual === 'dark' ? 'light' : 'dark';
+    aplicarTema(nuevo);
+    mostrarToast(nuevo === 'dark' ? 'Modo oscuro activado' : 'Modo claro activado', 'success');
+  }
+
+  function cargarTema() {
+    const tema = localStorage.getItem(CLAVE_TEMA) || 'dark';
+    aplicarTema(tema);
+  }
+
+  /* ---------- CARGAR DATOS ---------- */
+  function cargarDatos() {
+    const datos = localStorage.getItem(CLAVE_STORAGE);
+    vacantes = datos ? JSON.parse(datos) : [];
+    renderizar();
+  }
+
+  function guardarDatos() {
+    localStorage.setItem(CLAVE_STORAGE, JSON.stringify(vacantes));
+  }
+
+  /* ---------- RENDERIZAR ---------- */
+  function renderizar() {
+    const busqueda = document.getElementById('busqueda').value.toLowerCase();
+    const filtroEstado = document.getElementById('filtroEstado').value;
+    const ordenar = document.getElementById('ordenar').value;
+
+    let filtradas = vacantes.filter(v => {
+      const coincideBusqueda = !busqueda ||
+        v.empresa.toLowerCase().includes(busqueda) ||
+        v.puesto.toLowerCase().includes(busqueda) ||
+        (v.notas || '').toLowerCase().includes(busqueda);
+      const coincideEstado = !filtroEstado || v.estado === filtroEstado;
+      return coincideBusqueda && coincideEstado;
+    });
+
+    filtradas.sort((a, b) => {
+      if (ordenar === 'fecha-desc') return (b.fecha || '').localeCompare(a.fecha || '');
+      if (ordenar === 'fecha-asc') return (a.fecha || '').localeCompare(b.fecha || '');
+      if (ordenar === 'empresa') return a.empresa.localeCompare(b.empresa);
+      if (ordenar === 'salario-desc') return (b.salario || 0) - (a.salario || 0);
+      return 0;
+    });
+
+    const cuerpo = document.getElementById('cuerpoTabla');
+    if (filtradas.length === 0) {
+      cuerpo.innerHTML = `<tr><td colspan="7"><div class="empty">
+        <div class="empty-icon">${ICONOS.inbox}</div>
+        <h3>No hay vacantes registradas</h3>
+        <p>Agrega tu primera vacante con el botón "Nueva Vacante"</p>
+      </div></td></tr>`;
+    } else {
+      cuerpo.innerHTML = filtradas.map(v => `
+        <tr>
+          <td><strong>${escaparHtml(v.empresa)}</strong></td>
+          <td>${escaparHtml(v.puesto)}${v.modalidad ? `<br><small style="color:var(--text-light)">${v.modalidad}</small>` : ''}</td>
+          <td><span class="badge ${claseBadge(v.estado)}">${iconoBadge(v.estado)}${v.estado}</span></td>
+          <td>${v.fecha ? formatearFecha(v.fecha) : '-'}</td>
+          <td>${v.salario ? '$' + Number(v.salario).toLocaleString('es-MX') : '-'}</td>
+          <td>${v.notas ? escaparHtml(v.notas.substring(0, 35)) + (v.notas.length > 35 ? '...' : '') : '-'}</td>
+          <td>
+            <div class="actions">
+              ${v.url ? `<a href="${v.url}" target="_blank" class="icon-btn" title="Abrir vacante">${ICONOS.link}</a>` : ''}
+              <button class="icon-btn" onclick="editarVacante('${v.id}')" title="Editar">${ICONOS.edit}</button>
+              <button class="icon-btn" onclick="eliminarVacante('${v.id}')" title="Eliminar">${ICONOS.trash}</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    actualizarEstadisticas();
+  }
+
+  function actualizarEstadisticas() {
+    document.getElementById('statTotal').textContent = vacantes.length;
+    document.getElementById('statPostulado').textContent = vacantes.filter(v => v.estado === 'Postulado').length;
+    document.getElementById('statEntrevista').textContent = vacantes.filter(v => v.estado === 'Entrevista' || v.estado === 'Prueba Técnica').length;
+    document.getElementById('statOferta').textContent = vacantes.filter(v => v.estado === 'Oferta').length;
+    document.getElementById('statRechazado').textContent = vacantes.filter(v => v.estado === 'Rechazado').length;
+  }
+
+  /* ---------- UTILIDADES ---------- */
+  function escaparHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function claseBadge(estado) {
+    const mapa = { 'Postulado':'postulado','Entrevista':'entrevista','Prueba Técnica':'prueba','Oferta':'oferta','Rechazado':'rechazado' };
+    return mapa[estado] || 'postulado';
+  }
+  function iconoBadge(estado) {
+    const mapa = {
+      'Postulado': ICONOS.badgeCheck,
+      'Entrevista': ICONOS.badgeMic,
+      'Prueba Técnica': ICONOS.badgeFlask,
+      'Oferta': ICONOS.badgeGift,
+      'Rechazado': ICONOS.badgeX
+    };
+    return mapa[estado] || ICONOS.badgeCheck;
+  }
+  function formatearFecha(f) {
+    const [a, m, d] = f.split('-');
+    return `${d}/${m}/${a}`;
+  }
+
+  /* ---------- MODAL ---------- */
+  function abrirModal(vacante = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('tituloTexto').textContent = vacante ? 'Editar Vacante' : 'Nueva Vacante';
+    document.getElementById('vacanteId').value = vacante ? vacante.id : '';
+    document.getElementById('empresa').value = vacante ? vacante.empresa : '';
+    document.getElementById('puesto').value = vacante ? vacante.puesto : '';
+    document.getElementById('estado').value = vacante ? vacante.estado : 'Postulado';
+    document.getElementById('fecha').value = vacante ? vacante.fecha : new Date().toISOString().split('T')[0];
+    document.getElementById('salario').value = vacante ? vacante.salario : '';
+    document.getElementById('modalidad').value = vacante ? vacante.modalidad : 'Remoto';
+    document.getElementById('url').value = vacante ? vacante.url : '';
+    document.getElementById('notas').value = vacante ? vacante.notas : '';
+  }
+
+  function cerrarModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+    document.getElementById('formularioVacante').reset();
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target.id === 'modalOverlay') cerrarModal();
+  });
+
+  /* ---------- CRUD ---------- */
+  function guardarVacante(e) {
+    e.preventDefault();
+    const id = document.getElementById('vacanteId').value;
+    const vacante = {
+      id: id || Date.now().toString(),
+      empresa: document.getElementById('empresa').value.trim(),
+      puesto: document.getElementById('puesto').value.trim(),
+      estado: document.getElementById('estado').value,
+      fecha: document.getElementById('fecha').value,
+      salario: document.getElementById('salario').value,
+      modalidad: document.getElementById('modalidad').value,
+      url: document.getElementById('url').value.trim(),
+      notas: document.getElementById('notas').value.trim()
+    };
+
+    if (id) {
+      const indice = vacantes.findIndex(v => v.id === id);
+      vacantes[indice] = vacante;
+      mostrarToast('Vacante actualizada correctamente', 'success');
+    } else {
+      vacantes.push(vacante);
+      mostrarToast('Vacante agregada correctamente', 'success');
+    }
+    guardarDatos();
+    renderizar();
+    cerrarModal();
+  }
+
+  function editarVacante(id) {
+    const vacante = vacantes.find(v => v.id === id);
+    if (vacante) abrirModal(vacante);
+  }
+
+  function eliminarVacante(id) {
+    if (!confirm('¿Estás seguro de eliminar esta vacante?')) return;
+    vacantes = vacantes.filter(v => v.id !== id);
+    guardarDatos();
+    renderizar();
+    mostrarToast('Vacante eliminada', 'error');
+  }
+
+  /* ---------- EXPORTAR / IMPORTAR ---------- */
+  function exportarDatos() {
+    if (vacantes.length === 0) return mostrarToast('No hay datos para exportar', 'error');
+    const blob = new Blob([JSON.stringify(vacantes, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mis_vacantes_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    mostrarToast('Datos exportados correctamente', 'success');
+  }
+
+  function importarDatos(e) {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+    const lector = new FileReader();
+    lector.onload = ev => {
+      try {
+        const importadas = JSON.parse(ev.target.result);
+        if (!Array.isArray(importadas)) throw new Error('Formato inválido');
+        if (confirm(`¿Importar ${importadas.length} vacantes? Se agregarán a las existentes.`)) {
+          vacantes = [...vacantes, ...importadas];
+          guardarDatos();
+          renderizar();
+          mostrarToast(`${importadas.length} vacantes importadas`, 'success');
+        }
+      } catch (err) {
+        mostrarToast('Error al importar el archivo', 'error');
+      }
+    };
+    lector.readAsText(archivo);
+    e.target.value = '';
+  }
+
+  /* ---------- TOAST ---------- */
+  function mostrarToast(mensaje, tipo = '') {
+    const t = document.getElementById('toast');
+    const icono = tipo === 'error' ? ICONOS.alert : ICONOS.check;
+    t.innerHTML = icono + '<span>' + mensaje + '</span>';
+    t.className = 'toast show ' + tipo;
+    setTimeout(() => t.className = 'toast ' + tipo, 2600);
+  }
+
+  /* ---------- SIDEBAR MÓVIL ---------- */
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  document.querySelectorAll('.sidebar-link').forEach(enlace => {
+    enlace.addEventListener('click', () => {
+      if (window.innerWidth <= 900) {
+        document.getElementById('sidebar').classList.remove('open');
+      }
+    });
+  });
+
+  document.addEventListener('click', e => {
+    const sidebar = document.getElementById('sidebar');
+    const boton = document.querySelector('.toggle-sidebar');
+    if (window.innerWidth <= 900 &&
+        sidebar.classList.contains('open') &&
+        !sidebar.contains(e.target) &&
+        !boton.contains(e.target)) {
+      sidebar.classList.remove('open');
+    }
+  });
+
+  /* ---------- INICIO ---------- */
+  cargarTema();
+  cargarDatos();
+</script>
+</body>
+</html>
